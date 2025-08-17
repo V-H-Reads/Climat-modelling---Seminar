@@ -22,12 +22,13 @@ p = np.zeros((ny, nx))  # pressure
 T = np.full((ny, nx), 280.0)  # temperature tracer 280 K
 
 # Example: cold patch of ice 250 K, slightly out of centre
+ice_patch = np.zeros((ny, nx), dtype=bool)
 cx, cy = nx//2-2, ny//2-2
 radius = 8
 for i in range(nx):
     for j in range(ny):
         if (i-cx)**2 + (j-cy)**2 < radius**2:
-            T[j, i] = 250.0
+            ice_patch[j, i] = True
 
 # -----------------------
 # 3. Helper functions
@@ -101,6 +102,11 @@ def simulate():
         u[0, :], u[-1, :], u[:, 0], u[:, -1] = 0, 0, 0, 0
         v[0, :], v[-1, :], v[:, 0], v[:, -1] = 0, 0, 0, 0
 
+        # Ice patch solid boundary condition
+        T[ice_patch] = 250.0 # Dirichlet BC 
+        u[ice_patch] = 0.0 # no flow in x-direction
+        v[ice_patch] = 0.0 # no flow in y-direction
+
 # -----------------------
 # 5. Visualization
 # -----------------------
@@ -109,7 +115,8 @@ def animate(i):
     simulate()
     ax.clear()
     ax.set_title(f"Step {i}")
-    ax.imshow(T, cmap='coolwarm', origin='lower', extent=[0,Lx,0,Ly])
+    T_plot = np.ma.masked_where(ice_patch, T) # masks the ice patch temperature profile
+    ax.imshow(T_plot, cmap='coolwarm', origin='lower', extent=[0,Lx,0,Ly])
     ax.quiver(np.linspace(0,Lx,nx), np.linspace(0,Ly,ny), u, v)
 
 ani = animation.FuncAnimation(fig, animate, frames=50, interval=50)
