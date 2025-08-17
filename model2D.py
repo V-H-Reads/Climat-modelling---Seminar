@@ -19,10 +19,15 @@ rho = 1.0               # density
 u = np.zeros((ny, nx))  # x-velocity
 v = np.zeros((ny, nx))  # y-velocity
 p = np.zeros((ny, nx))  # pressure
-T = np.zeros((ny, nx))  # temperature tracer
+T = np.full((ny, nx), 280.0)  # temperature tracer 280 K
 
-# Example: warm patch in center
-T[ny//2 - 5:ny//2 + 5, nx//2 - 5:nx//2 + 5] = 1.0
+# Example: cold patch of ice 250 K, slightly out of centre
+cx, cy = nx//2-2, ny//2-2
+radius = 8
+for i in range(nx):
+    for j in range(ny):
+        if (i-cx)**2 + (j-cy)**2 < radius**2:
+            T[j, i] = 250.0
 
 # -----------------------
 # 3. Helper functions
