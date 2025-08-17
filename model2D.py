@@ -24,7 +24,7 @@ T = np.full((ny, nx), 280.0)  # temperature tracer 280 K
 # Example: cold patch of ice 250 K, slightly out of centre
 ice_patch = np.zeros((ny, nx), dtype=bool)
 cx, cy = nx//2-2, ny//2-2
-radius = 8
+radius = 6
 for i in range(nx):
     for j in range(ny):
         if (i-cx)**2 + (j-cy)**2 < radius**2:
