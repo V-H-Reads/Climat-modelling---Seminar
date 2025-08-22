@@ -5,7 +5,7 @@ from matplotlib import animation
 # -----------------------
 # 1. Parameters
 # -----------------------
-nx, ny = 41, 41         # grid points
+nx, ny = 100, 100         # grid points
 Lx, Ly = 1.0, 1.0       # domain size (m)
 dx, dy = Lx/(nx-1), Ly/(ny-1)
 nt = 200                # time steps
@@ -21,14 +21,35 @@ v = np.zeros((ny, nx))  # y-velocity
 p = np.zeros((ny, nx))  # pressure
 T = np.full((ny, nx), 280.0)  # temperature tracer 280 K
 
+# Motivation: model tree ice patches of different tempreture to see the , how the gradient 
+# in the temperature field evolves over time
 # Example: cold patch of ice 250 K, slightly out of centre
-ice_patch = np.zeros((ny, nx), dtype=bool)
-cx, cy = nx//2-2, ny//2-2
-radius = 6
-for i in range(nx):
-    for j in range(ny):
-        if (i-cx)**2 + (j-cy)**2 < radius**2:
-            ice_patch[j, i] = True
+num_patches = 3
+patch_temps = [265.0, 240.0, 250.0]
+ice_patch = [np.zeros((ny, nx), dtype=bool) for _ in range(num_patches)]
+
+cx, cy = nx//2, ny//2
+radius = 8
+
+# Example patch centers (customize as needed)
+patch_centers = [
+    (cx, cy),           # Center
+    (cx - 24, cy - 24),   # Top-left
+    (cx + 24, cy + 24)    # Bottom-right
+]
+
+for idx, (px, py) in enumerate(patch_centers):
+    for x in range(nx):
+        for y in range(ny):
+            if (x - px)**2 + (y - py)**2 < radius**2:
+                ice_patch[idx][y, x] = True
+
+# Set initial temperatures for each patch
+for idx, mask in enumerate(ice_patch):
+    T[mask] = patch_temps[idx]
+
+# Combine all patches into one mask for plotting and boundary conditions
+ice_patch = np.any(ice_patch, axis=0)
 
 # -----------------------
 # 3. Helper functions
@@ -103,7 +124,6 @@ def simulate():
         v[0, :], v[-1, :], v[:, 0], v[:, -1] = 0, 0, 0, 0
 
         # Ice patch solid boundary condition
-        T[ice_patch] = 250.0 # Dirichlet BC 
         u[ice_patch] = 0.0 # no flow in x-direction
         v[ice_patch] = 0.0 # no flow in y-direction
 
