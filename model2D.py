@@ -7,7 +7,7 @@ from matplotlib import animation
 # -----------------------
 nx, ny = 100, 100         # grid points
 Lx, Ly = 1.0, 1.0       # domain size (m)
-dx, dy = Lx/(nx-1), Ly/(ny-1)
+dx, dy = Lx/(nx-1), Ly/(ny-1) # grid spacing
 nt = 200                # time steps
 dt = 0.001              # time step size
 nu = 0.01               # viscosity
@@ -21,23 +21,22 @@ v = np.zeros((ny, nx))  # y-velocity
 p = np.zeros((ny, nx))  # pressure
 T = np.full((ny, nx), 280.0)  # temperature tracer 280 K
 
-# Motivation: model tree ice patches of different tempreture to see the , how the gradient 
+# Example: model tree ice patches of different tempreture to see how the gradient 
 # in the temperature field evolves over time
-# Example: cold patch of ice 250 K, slightly out of centre
 num_patches = 3
 patch_temps = [265.0, 240.0, 250.0]
 ice_patch = [np.zeros((ny, nx), dtype=bool) for _ in range(num_patches)]
-
 cx, cy = nx//2, ny//2
 radius = 8
 
 # Example patch centers (customize as needed)
 patch_centers = [
     (cx, cy),           # Center
-    (cx - 24, cy - 24),   # Top-left
-    (cx + 24, cy + 24)    # Bottom-right
+    (cx - nx//4, cy - ny//4),   # Top-left
+    (cx + nx//4, cy + ny//4)    # Bottom-right
 ]
 
+# Set ice patch masks
 for idx, (px, py) in enumerate(patch_centers):
     for x in range(nx):
         for y in range(ny):
