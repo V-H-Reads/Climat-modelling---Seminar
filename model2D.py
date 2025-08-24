@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 
 # -----------------------
-# 1. Parameters
+# Set Parameters and define grid characteristics
 # -----------------------
 nx, ny = 100, 100         # grid points
-Lx, Ly = 1.0, 1.0       # domain size (m)
+Lx, Ly = 1.0, 1.0       # domain size
 dx, dy = Lx/(nx-1), Ly/(ny-1) # grid spacing
 nt = 200                # time steps
 dt = 0.001              # time step size
@@ -14,15 +14,18 @@ nu = 0.01               # viscosity
 rho = 1.0               # density
 
 # -----------------------
-# 2. Initial conditions
+# Define the unknown variables with initial conditions
 # -----------------------
 u = np.zeros((ny, nx))  # x-velocity
 v = np.zeros((ny, nx))  # y-velocity
 p = np.zeros((ny, nx))  # pressure
 T = np.full((ny, nx), 280.0)  # temperature tracer 280 K
 
-# Example: model tree ice patches of different tempreture to see how the gradient 
-# in the temperature field evolves over time
+# -----------------------
+# Example: model three ice patches of different temperatures
+# to see how the gradient in the temperature field
+# evolves over time
+# -----------------------
 num_patches = 3
 patch_temps = [265.0, 240.0, 250.0]
 ice_patch = [np.zeros((ny, nx), dtype=bool) for _ in range(num_patches)]
@@ -48,10 +51,13 @@ for idx, mask in enumerate(ice_patch):
     T[mask] = patch_temps[idx]
 
 # Combine all patches into one mask for plotting and boundary conditions
-ice_patch = np.any(ice_patch, axis=0)
+ice_patch_mask = np.any(ice_patch, axis=0)
 
 # -----------------------
-# 3. Helper functions
+# Implement functions to calculate Poisson-pressure to ensure
+# that the velocity field stays divergence free: nabla*v = 0 
+# -----------------------
+# delta(p) = b
 # -----------------------
 def build_up_pressure(p, u, v, dx, dy, dt, rho):
     b = np.zeros_like(p)
@@ -73,7 +79,7 @@ def pressure_poisson(p, b, dx, dy):
             ((pn[1:-1, 2:] + pn[1:-1, :-2]) * dy**2 +
              (pn[2:, 1:-1] + pn[:-2, 1:-1]) * dx**2) /
             (2*(dx**2 + dy**2))
-            - dx**2 * dy**2 / (2*(dx**2 + dy**2)) * b[1:-1, 1:-1]
+            - ( dx**2 * dy**2 / (2*(dx**2 + dy**2))) * b[1:-1, 1:-1]
         )
         # BCs: p=0 at boundaries
         p[:, 0] = p[:, -1] = 0
@@ -81,9 +87,9 @@ def pressure_poisson(p, b, dx, dy):
     return p
 
 # -----------------------
-# 4. Time-stepping loop
+# Time-stepping loop
 # -----------------------
-def simulate():
+def simulate():  
     global u, v, p, T
     for n in range(nt):
         un, vn, Tn = u.copy(), v.copy(), T.copy()
@@ -91,6 +97,11 @@ def simulate():
         p = pressure_poisson(p, b, dx, dy)
 
         # Momentum equations (Navier–Stokes)
+        # ---------------------
+        # the unknowns will be updated with the explicit Euler method
+        # ---------------------
+
+        # x-Komponent of the velocity vector
         u[1:-1, 1:-1] = (
             un[1:-1, 1:-1]
             - un[1:-1, 1:-1] * dt/dx * (un[1:-1, 1:-1] - un[1:-1, :-2])
@@ -100,6 +111,7 @@ def simulate():
                     + dt/dy**2 * (un[2:, 1:-1] - 2*un[1:-1, 1:-1] + un[:-2, 1:-1]))
         )
 
+        # y-Komponent of the velocity vector
         v[1:-1, 1:-1] = (
             vn[1:-1, 1:-1]
             - un[1:-1, 1:-1] * dt/dx * (vn[1:-1, 1:-1] - vn[1:-1, :-2])
@@ -118,23 +130,26 @@ def simulate():
                     + dt/dy**2 * (Tn[2:, 1:-1] - 2*Tn[1:-1, 1:-1] + Tn[:-2, 1:-1]))
         )
 
-        # Boundary conditions: walls
+        for idx, mask in enumerate(ice_patch):
+            T[mask] = patch_temps[idx]
+
+        # Boundary conditions: walls (no-slip condition)
         u[0, :], u[-1, :], u[:, 0], u[:, -1] = 0, 0, 0, 0
         v[0, :], v[-1, :], v[:, 0], v[:, -1] = 0, 0, 0, 0
 
-        # Ice patch solid boundary condition
-        u[ice_patch] = 0.0 # no flow in x-direction
-        v[ice_patch] = 0.0 # no flow in y-direction
+        # Ice patch solid boundary condition (Dirichlet)
+        u[ice_patch_mask] = 0.0 # no flow in x-direction
+        v[ice_patch_mask] = 0.0 # no flow in y-direction
 
 # -----------------------
-# 5. Visualization
+# Plot the domain 
 # -----------------------
 fig, ax = plt.subplots()
 def animate(i):
     simulate()
     ax.clear()
     ax.set_title(f"Step {i}")
-    T_plot = np.ma.masked_where(ice_patch, T) # masks the ice patch temperature profile
+    T_plot = np.ma.masked_where(ice_patch_mask, T) # mask the ice patch temperature profile
     ax.imshow(T_plot, cmap='coolwarm', origin='lower', extent=[0,Lx,0,Ly])
     ax.quiver(np.linspace(0,Lx,nx), np.linspace(0,Ly,ny), u, v)
 
