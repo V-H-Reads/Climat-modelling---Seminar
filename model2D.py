@@ -10,7 +10,7 @@ Lx, Ly = 1.0, 1.0       # domain size
 dx, dy = Lx/(nx-1), Ly/(ny-1) # grid spacing
 nt = 200                # time steps
 dt = 0.001              # time step size
-nu = 0.01               # viscosity
+nu = 0.005               # viscosity
 rho = 1.0               # density
 
 # -----------------------
@@ -51,7 +51,8 @@ for idx, mask in enumerate(ice_patch):
     T[mask] = patch_temps[idx]
 
 # Combine all patches into one mask for plotting and boundary conditions
-ice_patch_mask = np.any(ice_patch, axis=0)
+# ice_patch_mask = np.any(ice_patch, axis=0)
+ice_patch = np.any(ice_patch, axis=0)
 
 # -----------------------
 # Implement functions to calculate Poisson-pressure to ensure
@@ -130,16 +131,17 @@ def simulate():
                     + dt/dy**2 * (Tn[2:, 1:-1] - 2*Tn[1:-1, 1:-1] + Tn[:-2, 1:-1]))
         )
 
-        for idx, mask in enumerate(ice_patch):
-            T[mask] = patch_temps[idx]
+        #for idx, mask in enumerate(ice_patch):
+        #    T[mask] = patch_temps[idx]
 
         # Boundary conditions: walls (no-slip condition)
         u[0, :], u[-1, :], u[:, 0], u[:, -1] = 0, 0, 0, 0
         v[0, :], v[-1, :], v[:, 0], v[:, -1] = 0, 0, 0, 0
 
         # Ice patch solid boundary condition (Dirichlet)
-        u[ice_patch_mask] = 0.0 # no flow in x-direction
-        v[ice_patch_mask] = 0.0 # no flow in y-direction
+        # change to ice_patch_mask
+        u[ice_patch] = 0.0 # no flow in x-direction
+        v[ice_patch] = 0.0 # no flow in y-direction
 
 # -----------------------
 # Plot the domain 
@@ -149,7 +151,8 @@ def animate(i):
     simulate()
     ax.clear()
     ax.set_title(f"Step {i}")
-    T_plot = np.ma.masked_where(ice_patch_mask, T) # mask the ice patch temperature profile
+    # change to ice_patch_mask
+    T_plot = np.ma.masked_where(ice_patch, T) # mask the ice patch temperature profile
     ax.imshow(T_plot, cmap='coolwarm', origin='lower', extent=[0,Lx,0,Ly])
     ax.quiver(np.linspace(0,Lx,nx), np.linspace(0,Ly,ny), u, v)
 
